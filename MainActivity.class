@@ -1,0 +1,229 @@
+package com.dsjx.dsjxnursingwiorker;
+
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
+import android.os.Build;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewTreeObserver;
+import android.view.Window;
+import android.view.WindowManager;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Toast;
+
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.Locale;
+
+import static android.webkit.WebSettings.LOAD_NO_CACHE;
+
+public class MainActivity extends Activity {
+    private WebView mWebView;
+    private WebSettings mWebSettings;
+
+    @Override
+    @SuppressLint("SetJavaScriptEnabled")
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // 隐藏标题栏
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        // 隐藏状态栏
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setContentView(R.layout.activity_main);
+//        //root检测
+//        if (ConfigureUtils.isRooted()) {
+//            Toast.makeText(this, "当前手机已获取root权限，请更换设备", Toast.LENGTH_SHORT).show();
+//            finish();
+//            return;
+//        }
+//        //监测是否是虚拟机
+//        if (!isTrulyDevice()) {
+//            Toast.makeText(this, "当前设备为虚拟机，请更换设备", Toast.LENGTH_SHORT).show();
+//            finish();
+//        }
+//        //动态注入检测 调试检测
+//        if (isUnderTraced() || isDebuggable()) {
+//            Toast.makeText(this, "当前进程存在调试程序，请更换设备", Toast.LENGTH_SHORT).show();
+//            finish();
+//            return;
+//        }
+        //二次打包检测
+//        String signs = "37:F0:6D:CE:B7:74:2C:38:B0:07:ED:25:FC:F0:01:A9";
+//        if (!SignaturesMsg.isDebuggable(ConfigureUtils.getSingInfos(this))) {
+//            if (!SignaturesMsg.signatureMD5(ConfigureUtils.getSingInfos(this)).equals(signs.replace(":", ""))) {
+//                Toast.makeText(this, "已被二次打包，请从正规渠道下载安装", Toast.LENGTH_SHORT).show();
+//                finish();
+//                return;
+//            }
+//        }
+        mWebView = findViewById(R.id.web);
+        mWebView.setHorizontalScrollBarEnabled(false);
+//        mWebView
+        // 设置支持JavaScript等
+
+        mWebSettings = mWebView.getSettings();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mWebSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        } else {
+            mWebSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+            mWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+        mWebSettings.setJavaScriptEnabled(true);// 设置与Js交互的权限
+        mWebSettings.setDomStorageEnabled(true);// 开启 DOM storage 功能
+        mWebSettings.setJavaScriptCanOpenWindowsAutomatically(true);// 设置允许JS弹窗
+        mWebSettings.setSupportZoom(false);
+        mWebSettings.setDisplayZoomControls(false); // 隐藏缩放控件
+        mWebSettings.setLoadsImagesAutomatically(true); //支持自动加载图片
+        mWebSettings.setDefaultTextEncodingName("utf-8");//设置编码格式
+        mWebSettings.setCacheMode(WebSettings.LOAD_NO_CACHE); //关闭webview中缓存
+
+        mWebView.setWebChromeClient(new WebChromeClient());
+        mWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                try {
+                    Log.e("shouldOverri", URLDecoder.decode(request.getUrl().toString()));
+                    mWebView.loadUrl(URLDecoder.decode(request.getUrl().toString(), "UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                Log.e("shouldOverrid主要e", url);
+                return true;
+            }
+
+            @Override
+            public void onLoadResource(WebView view, String url) {
+                super.onLoadResource(view, url);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                Log.e("onPageFinished", "onPageFinished " + url);
+                if (view.getProgress() == 100) {
+                    view.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                Log.e("onPageStarted", "onPageStarted   " + url);
+            }
+        });
+//        mWebView.addJavascriptInterface(new MyJavascriptInterface(this), "android");
+        mWebView.loadUrl("http://36.154.12.195:60000/xunhang");
+    }
+///36.154.12.194:60005/
+
+    private boolean isUnderTraced() {
+        String processStatusFilePath = String.format(Locale.US, "/proc/%d/status", android.os.Process.myPid());
+        File procInfoFile = new File(processStatusFilePath);
+        try {
+            BufferedReader b = new BufferedReader(new FileReader(procInfoFile));
+            String readLine;
+            while ((readLine = b.readLine()) != null) {
+                if (readLine.contains("TracerPid")) {
+                    String[] arrays = readLine.split(":");
+                    if (arrays.length == 2) {
+                        int tracerPid = Integer.parseInt(arrays[1].trim());
+                        if (tracerPid != 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            b.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean isDebuggable() {
+        return 0 != (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE);
+
+    }
+
+
+    /**
+     * 真实设备检测
+     *
+     * @return true:真机,false:模拟器
+     */
+    public final static boolean isTrulyDevice() {
+        //ro.radio.use-ppp—>yes or ro.product.cpu.abi—>x86 一定是模拟器
+        //ro.radio.use-ppp—>null or init.svc.console->null 一定是真机
+        String abi = properties("ro.product.cpu.abi");
+        String usePPP = properties("ro.radio.use-ppp");
+        String console = properties("init.svc.console");
+
+        boolean emulator1 = "x86".equals(abi);
+        boolean emulator2 = "yes".equals(usePPP);
+
+        boolean device1 = TextUtils.isEmpty(usePPP);
+        boolean device2 = TextUtils.isEmpty(console);
+        return !(emulator1 || emulator2) && (device1 || device2);
+    }
+
+    private final static String properties(String key) {
+        try {
+            Process process = Runtime.getRuntime().exec("getprop " + key);
+            InputStream inputStream = process.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuffer buffer = new StringBuffer();
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                buffer.append(line);
+            }
+            return buffer.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.e("zoule 111", "onResume");
+//        if (mWebView != null) {
+//            mWebView.onResume();
+//            mWebView.loadUrl("file:///android_asset/index.html");
+////            mWebView.loadUrl("http://36.154.12.195:60000/xunhang");
+//        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mWebView != null) {
+            Log.e("zoule 111", "onPause");
+            mWebView.onPause();
+        }
+    }
+
+}
